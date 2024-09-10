@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-libscemu = "0.17.3"
+minhook = "0.5.0"
+colored = "2"
