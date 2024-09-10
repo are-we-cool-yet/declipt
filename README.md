@@ -1,5 +1,8 @@
 # Declipt
 
+## Special Thanks
+…to [WitherOrNot](https://github.com/WitherOrNot) for researching and cracking [Warbird](https://github.com/WitherOrNot/warbird-docs/tree/main).
+
 ## Usage
 To use Declipt, clone the Git repository, and copy `maps64` (found [here](https://github.com/sha0coder/scemu/tree/main)) and `ClipSp.sys` into the project root.
 
