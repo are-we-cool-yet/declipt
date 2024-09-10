@@ -12,4 +12,4 @@ You will then need to add the following files to `maps64` (find them yourself):
 - `ntoskrnl.exe`
 
 > [!IMPORTANT]
-Because of some weird shenanigans that are beyond me, you must rename any `.exe` or `.sys` dependencies in `map64` to `.exe.dll` or `.sys.dll` respectively.
+Because of some weird shenanigans that are beyond me, you must rename any `.exe` or `.sys` dependencies in `maps64` to `.exe.dll` or `.sys.dll` respectively.
