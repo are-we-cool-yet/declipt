@@ -1,5 +1,7 @@
 //! A collection of hooks and patches.
 
+/// Replace the first six bytes of the main entrypoint with these bytes.
+/// Do note that there are multiple entrypoints; you want the one that is called upon driver initialization (the "true" entrypoint).
 /// ```asm
 /// mov eax, 1
 /// ret

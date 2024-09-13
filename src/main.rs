@@ -9,7 +9,7 @@ fn main() -> Result<(), Error> {
     // SAFETY: It is assumed that the library is safe to load and that the platform supports calling functions via DLL offset.
     // It also assumes that Microsoft hasn't changed anything. If these conditions aren't met, god help you.
 
-    let lib_path = std::fs::canonicalize("./maps64/ClipSp.sys.")?;
+    let lib_path = std::fs::canonicalize("./ClipSp.sys.")?;
 
     unsafe {
         println!("Loading ClipSp.sys");
