@@ -5,6 +5,4 @@
 .DS_Store
 
 # Emulation
-/maps64
-/maps32
-ClipSp.sys
+/emu64
