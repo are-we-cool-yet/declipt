@@ -27,6 +27,24 @@ pub const unsafe fn ExAcquireFastMutex<T>(offset: isize) -> *mut T {
 pub const unsafe fn ExReleaseFastMutex<T>(offset: isize) -> *mut T {
     offset_addr(0x1C00B1400, offset)
 }
+pub const unsafe fn IoAllocateMdl<T>(offset: isize) -> *mut T {
+    offset_addr(0x1C00B13F8, offset)
+}
+pub const unsafe fn IoFreeMdl<T>(offset: isize) -> *mut T {
+    offset_addr(0x1C00B13E8, offset)
+}
+pub const unsafe fn MmProbeAndLockPages<T>(offset: isize) -> *mut T {
+    offset_addr(0x1C00B1420, offset)
+}
+pub const unsafe fn MmLockPagableDataSection<T>(offset: isize) -> *mut T {
+    offset_addr(0x1C00B1408, offset)
+}
+pub const unsafe fn MmMapLockedPagesSpecifyCache<T>(offset: isize) -> *mut T {
+    offset_addr(0x1C00B13C8, offset)
+}
+pub const unsafe fn MmUnlockPages<T>(offset: isize) -> *mut T {
+    offset_addr(0x1C00B1428, offset)
+}
 
 // DLL Flags
 /// https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw
@@ -38,6 +56,25 @@ pub type WarbirdDecrypt = unsafe extern "fastcall" fn(rw_data: winapi::ctypes::_
 // Magic
 /// I don't know why this is, but symbols' offsets as defined in their PDBs are offset by this in real memory.
 pub const MAGIC_OFFSET: isize = 0x180000000;
+pub type QWORD = winapi::ctypes::c_ulonglong;
+pub type KPROCESSOR_MODE = winapi::shared::ntdef::CCHAR;
+#[repr(C)]
+pub enum LOCK_OPERATION {
+    IoReadAccess = 0x0,
+    IoWriteAccess = 0x1,
+    IoModifyAccess = 0x2,
+}
+#[repr(C)]
+pub enum MEMORY_CACHING_TYPE {
+    MmNonCached = 0x0,
+    MmCached = 0x1,
+    MmWriteCombined = 0x2,
+    MmHardwareCoherentCached = 0x3,
+    MmNonCachedUnordered = 0x4,
+    MmUSWCCached = 0x5,
+    MmMaximumCacheType = 0x6,
+    MmNotMapped = 0xFFFFFFFF,
+}
 
 /// Relevant addresses where decryption occurs.
 /// DO NOT CHANGE THESE. THESE DO NOTHING.

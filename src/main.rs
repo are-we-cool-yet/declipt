@@ -2,6 +2,7 @@ use std::{ffi, path::Path};
 
 use constants::offset_addr;
 use error::Error;
+use minhook::MinHook;
 
 pub mod constants;
 pub mod error;
@@ -27,6 +28,16 @@ fn main() -> Result<(), Error> {
         let handle = lib.into_raw();
         println!("0x{handle:X}");
 
+        // hook ntoskrnl functions
+        MinHook::create_hook(*constants::IoAllocateMdl(handle), hook::IoAllocateMdl as _)?;
+        MinHook::create_hook(*constants::IoFreeMdl(handle), hook::IoFreeMdl as _)?;
+        MinHook::create_hook(*constants::MmProbeAndLockPages(handle), hook::MmProbeAndLockPages as _)?;
+        MinHook::create_hook(*constants::MmLockPagableDataSection(handle), hook::MmLockPagableDataSection as _)?;
+        MinHook::create_hook(*constants::MmMapLockedPagesSpecifyCache(handle), hook::MmMapLockedPagesSpecifyCache as _)?;
+        MinHook::create_hook(*constants::MmUnlockPages(handle), hook::MmUnlockPages as _)?;
+
+        MinHook::enable_all_hooks()?;
+
         for &(const_data, rw_data, decrypt_fn_addr) in constants::DATA.iter() {
             let rw_data_ptr: *mut ffi::c_void = offset_addr(rw_data, handle);
             let const_data_ptr = offset_addr::<winapi::ctypes::__int64>(const_data, handle);
@@ -42,6 +53,10 @@ fn main() -> Result<(), Error> {
             let decrypted = decrypt_fn(const_data_ptr as _, rw_data_ptr as *mut _);
             println!("Decrypted address: 0x{decrypted:X}");
         }
+
+        // uninitialize hooks
+        MinHook::disable_all_hooks()?;
+        MinHook::uninitialize();
 
         // unload library
         let lib = libloading::os::windows::Library::from_raw(handle);
