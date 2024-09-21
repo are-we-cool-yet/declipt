@@ -4,13 +4,17 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+// the least retarded shit
+pub const CLIPSP: &'static str = "./emu64/ClipSp.sys";
+pub const DEBUG_CLIPSP: &'static str = "../../emu64/ClipSp.sys";
+
 const fn from_base(addr: usize) -> usize {
     addr - 0x1C0000000
 }
 
 // Addresses
 /// Encryption data (read-write data, const data, decrypt function)
-pub const DATA: &[(usize, usize, usize)] = &[(0x1C00AA8E0, 0x1C00A1E10, 0x1C0001158)];
+pub const DATA: &[(usize, usize, usize)] = &[(0x1C00A1E10, 0x1C00AA8E0, 0x1C0001158)];
 
 pub const unsafe fn offset_addr<T>(ptr: usize, offset: isize) -> *mut T {
     (from_base(ptr) as *mut T).byte_offset(offset)
