@@ -43,9 +43,9 @@ fn main() -> Result<(), Error> {
             let const_data_ptr = offset_addr::<winapi::ctypes::__int64>(const_data, handle);
             if *((const_data_ptr.byte_offset(0x50)) as *mut winapi::shared::minwindef::DWORD) & 1 == 0 {
                 println!("Oops! Something is wrong with the Const Data provided.");
-                println!("rw_data + 0x50    0x{:X}", const_data_ptr.byte_offset(0x50) as usize);
-                println!("*(DWORD *)(rw_data + 0x50)    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD));
-                println!("*(DWORD *)(rw_data + 0x50) & 1    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD) & 1);
+                println!("const_data + 0x50    0x{:X}", const_data_ptr.byte_offset(0x50) as usize);
+                println!("*(DWORD *)(const_data + 0x50)    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD));
+                println!("*(DWORD *)(const_data + 0x50) & 1    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD) & 1);
             }
             let decrypt_fn_ptr = offset_addr(decrypt_fn_addr, handle);
             let decrypt_fn = std::mem::transmute::<*mut ffi::c_void, constants::WarbirdDecrypt>(decrypt_fn_ptr);
