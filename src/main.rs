@@ -1,3 +1,5 @@
+#![feature(macro_metavar_expr)]
+
 use std::{ffi, path::Path};
 
 use constants::offset_addr;
@@ -29,12 +31,14 @@ fn main() -> Result<(), Error> {
         println!("0x{handle:X}");
 
         // hook ntoskrnl functions
-        MinHook::create_hook(*constants::IoAllocateMdl(handle), hook::IoAllocateMdl as _)?;
-        MinHook::create_hook(*constants::IoFreeMdl(handle), hook::IoFreeMdl as _)?;
-        MinHook::create_hook(*constants::MmProbeAndLockPages(handle), hook::MmProbeAndLockPages as _)?;
-        MinHook::create_hook(*constants::MmLockPagableDataSection(handle), hook::MmLockPagableDataSection as _)?;
-        MinHook::create_hook(*constants::MmMapLockedPagesSpecifyCache(handle), hook::MmMapLockedPagesSpecifyCache as _)?;
-        MinHook::create_hook(*constants::MmUnlockPages(handle), hook::MmUnlockPages as _)?;
+        create_hook_factory!(create_hook, handle);
+        create_hook!(IoAllocateMdl);
+        create_hook!(IoFreeMdl);
+        create_hook!(MmProbeAndLockPages);
+        create_hook!(MmUnlockPages);
+        create_hook!(MmLockPagableDataSection);
+        create_hook!(MmMapLockedPagesSpecifyCache);
+        create_hook!(MmUnmapLockedPages);
 
         MinHook::enable_all_hooks()?;
 

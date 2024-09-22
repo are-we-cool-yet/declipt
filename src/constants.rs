@@ -4,47 +4,55 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
+use winapi::shared::{minwindef, ntdef};
+
 // the least retarded shit
 pub const CLIPSP: &'static str = "./emu64/ClipSp.sys";
 pub const DEBUG_CLIPSP: &'static str = "../../emu64/ClipSp.sys";
 
 const fn from_base(addr: usize) -> usize {
-    addr - 0x1C0000000
+    addr - DLL_BASE
 }
 
 // Addresses
 /// Encryption data (read-write data, const data, decrypt function)
 pub const DATA: &[(usize, usize, usize)] = &[(0x1C00A1E10, 0x1C00AA8E0, 0x1C0001158)];
+/// The base address of the DLL.
+pub const DLL_BASE: usize = 0x1C0000000;
 
 pub const unsafe fn offset_addr<T>(ptr: usize, offset: isize) -> *mut T {
     (from_base(ptr) as *mut T).byte_offset(offset)
 }
 
+/// A cursed-ass macro that defines another macro using local variables.
+#[macro_export]
+macro_rules! create_hook_factory {
+    ( $m_name:ident, $handle:ident ) => {
+        macro_rules! $m_name {
+            ( $i:ident ) => {
+                minhook::MinHook::create_hook(*$crate::constants::$i($handle), $crate::hook::$i as _)?
+            };
+        }
+    };
+}
+
 // Imported Function Addresses
-pub const unsafe fn ExAcquireFastMutex<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B13E0, offset)
+macro_rules! fn_addr {
+    ( $i:ident, $offset:literal ) => {
+        pub const unsafe fn $i<T>(offset: isize) -> *mut T {
+            $crate::constants::offset_addr($offset, offset)
+        }
+    };
 }
-pub const unsafe fn ExReleaseFastMutex<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B1400, offset)
-}
-pub const unsafe fn IoAllocateMdl<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B13F8, offset)
-}
-pub const unsafe fn IoFreeMdl<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B13E8, offset)
-}
-pub const unsafe fn MmProbeAndLockPages<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B1420, offset)
-}
-pub const unsafe fn MmLockPagableDataSection<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B1408, offset)
-}
-pub const unsafe fn MmMapLockedPagesSpecifyCache<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B13C8, offset)
-}
-pub const unsafe fn MmUnlockPages<T>(offset: isize) -> *mut T {
-    offset_addr(0x1C00B1428, offset)
-}
+fn_addr!(ExAcquireFastMutex, 0x1C00B13E0);
+fn_addr!(ExReleaseFastMutex, 0x1C00B1400);
+fn_addr!(IoAllocateMdl, 0x1C00B13F8);
+fn_addr!(IoFreeMdl, 0x1C00B13E8);
+fn_addr!(MmProbeAndLockPages, 0x1C00B1420);
+fn_addr!(MmUnlockPages, 0x1C00B1428);
+fn_addr!(MmLockPagableDataSection, 0x1C00B1408);
+fn_addr!(MmMapLockedPagesSpecifyCache, 0x1C00B13C8);
+fn_addr!(MmUnmapLockedPages, 0x1C00B13D0);
 
 // DLL Flags
 /// https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw
@@ -56,6 +64,8 @@ pub type WarbirdDecrypt = unsafe extern "fastcall" fn(rw_data: winapi::ctypes::_
 // Magic
 /// I don't know why this is, but symbols' offsets as defined in their PDBs are offset by this in real memory.
 pub const MAGIC_OFFSET: isize = 0x180000000;
+
+// Types n Shit
 pub type QWORD = winapi::ctypes::c_ulonglong;
 pub type KPROCESSOR_MODE = winapi::shared::ntdef::CCHAR;
 #[repr(C)]
@@ -75,6 +85,15 @@ pub enum MEMORY_CACHING_TYPE {
     MmMaximumCacheType = 0x6,
     MmNotMapped = 0xFFFFFFFF,
 }
+#[repr(C)]
+pub struct Mdl {
+    pub virtual_address: ntdef::PVOID,
+    pub length: minwindef::ULONG,
+    pub _pad: [u8; 0x20],
+}
+const _: () = if core::mem::size_of::<Mdl>() != 0x30 {
+    panic!("Memory Descriptor List is not of size 0x30!");
+};
 
 /// Relevant addresses where decryption occurs.
 /// DO NOT CHANGE THESE. THESE DO NOTHING.
