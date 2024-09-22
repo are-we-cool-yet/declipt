@@ -1,8 +1,6 @@
 //! A collection of hooks and patches.
 #![allow(non_snake_case)]
 
-use std::ffi;
-
 use winapi::shared::{minwindef, ntdef};
 
 use crate::constants::{Mdl, KPROCESSOR_MODE, LOCK_OPERATION, MEMORY_CACHING_TYPE, QWORD};
