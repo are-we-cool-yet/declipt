@@ -32,6 +32,7 @@ fn main() -> Result<(), Error> {
 
         // hook ntoskrnl functions
         create_hooks_with_handle! { handle:
+            MmChangeImageProtection;
             IoAllocateMdl;
             IoFreeMdl;
             MmProbeAndLockPages;
