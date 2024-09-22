@@ -61,10 +61,6 @@ pub const DONT_RESOLVE_DLL_REFERENCES: u32 = 0x00000001;
 // Function Types
 pub type WarbirdDecrypt = unsafe extern "fastcall" fn(rw_data: winapi::ctypes::__int64, const_data: *mut winapi::ctypes::c_int) -> winapi::ctypes::__int64;
 
-// Magic
-/// I don't know why this is, but symbols' offsets as defined in their PDBs are offset by this in real memory.
-pub const MAGIC_OFFSET: isize = 0x180000000;
-
 // Types n Shit
 pub type QWORD = winapi::ctypes::c_ulonglong;
 pub type KPROCESSOR_MODE = winapi::shared::ntdef::CCHAR;
