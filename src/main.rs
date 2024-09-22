@@ -1,14 +1,13 @@
-#![feature(macro_metavar_expr)]
-
 use std::{ffi, path::Path};
-
-use constants::offset_addr;
 use error::Error;
 use minhook::MinHook;
+use util::offset_addr;
 
 pub mod constants;
 pub mod error;
 pub mod hook;
+pub mod util;
+pub mod types;
 
 fn main() -> Result<(), Error> {
     // SAFETY: It is assumed that the library is safe to load and that the platform supports calling functions via DLL offset.
@@ -54,10 +53,10 @@ fn main() -> Result<(), Error> {
                 println!("*(DWORD *)(const_data + 0x50) & 1    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD) & 1);
             }
             let decrypt_fn_ptr = offset_addr(decrypt_fn_addr, handle);
-            let decrypt_fn = std::mem::transmute::<*mut ffi::c_void, constants::WarbirdDecrypt>(decrypt_fn_ptr);
+            let decrypt_fn = std::mem::transmute::<*mut ffi::c_void, types::WarbirdDecrypt>(decrypt_fn_ptr);
             println!("Decrypting rw_data (0x{rw_data:X}) and const_data (0x{const_data:X}) w/ 0x{decrypt_fn_addr:X}");
             let decrypted = decrypt_fn(const_data_ptr as _, rw_data_ptr as *mut _);
-            println!("Decrypted address: 0x{decrypted:X}");
+            println!("Error Code: 0x{decrypted:X}");
         }
 
         // uninitialize hooks

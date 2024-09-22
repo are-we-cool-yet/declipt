@@ -1,18 +1,14 @@
 //! A collection of important constants.
 
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 
-use winapi::shared::{minwindef, ntdef};
+use winapi::shared::ntdef;
+
+use crate::{c_define, types};
 
 // the least retarded shit
 pub const CLIPSP: &'static str = "./emu64/ClipSp.sys";
 pub const DEBUG_CLIPSP: &'static str = "../../emu64/ClipSp.sys";
-
-const fn from_base(addr: usize) -> usize {
-    addr - DLL_BASE
-}
 
 // Addresses
 /// Encryption data (read-write data, const data, decrypt function)
@@ -20,23 +16,17 @@ pub const DATA: &[(usize, usize, usize)] = &[(0x1C00A1E10, 0x1C00AA8E0, 0x1C0001
 /// The base address of the DLL.
 pub const DLL_BASE: usize = 0x1C0000000;
 
-pub const unsafe fn offset_addr<T>(ptr: usize, offset: isize) -> *mut T {
-    (from_base(ptr) as *mut T).byte_offset(offset)
-}
-
-/// A less cursed-ass macro that creates hooks.
-#[macro_export]
-macro_rules! create_hooks_with_handle {
-    { $handle:ident: $( $i:ident; )+ } => {
-        $( minhook::MinHook::create_hook(*$crate::constants::$i($handle), $crate::hook::$i as _)? );+
-    };
-}
+// Dummy Values
+/// Dummy EPROCESS. This is used for functions that require an EPROCESS value.
+pub const EPROCESS: types::EPROCESS = types::EPROCESS {
+    pid: 0xFEED,
+};
 
 // Imported Function Addresses
 macro_rules! fn_addr {
     ( $i:ident, $offset:literal ) => {
         pub const unsafe fn $i<T>(offset: isize) -> *mut T {
-            $crate::constants::offset_addr($offset, offset)
+            $crate::util::offset_addr($offset, offset)
         }
     };
 }
@@ -53,38 +43,27 @@ fn_addr!(MmUnmapLockedPages, 0x1C00B13D0);
 /// https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw
 pub const DONT_RESOLVE_DLL_REFERENCES: u32 = 0x00000001;
 
-// Function Types
-pub type WarbirdDecrypt = unsafe extern "fastcall" fn(rw_data: winapi::ctypes::__int64, const_data: *mut winapi::ctypes::c_int) -> winapi::ctypes::__int64;
-
-// Types n Shit
-pub type QWORD = winapi::ctypes::c_ulonglong;
-pub type KPROCESSOR_MODE = winapi::shared::ntdef::CCHAR;
-#[repr(C)]
-pub enum LOCK_OPERATION {
-    IoReadAccess = 0x0,
-    IoWriteAccess = 0x1,
-    IoModifyAccess = 0x2,
+// MDL Flags
+c_define!{
+    #[allow(overflowing_literals)]
+    pub ntdef::CSHORT:
+    #define MDL_MAPPED_TO_SYSTEM_VA     0x0001
+    #define MDL_PAGES_LOCKED            0x0002
+    #define MDL_SOURCE_IS_NONPAGED_POOL 0x0004
+    #define MDL_ALLOCATED_FIXED_SIZE    0x0008
+    #define MDL_PARTIAL                 0x0010
+    #define MDL_PARTIAL_HAS_BEEN_MAPPED 0x0020
+    #define MDL_IO_PAGE_READ            0x0040
+    #define MDL_WRITE_OPERATION         0x0080
+    #define MDL_PARENT_MAPPED_SYSTEM_VA 0x0100
+    #define MDL_FREE_EXTRA_PTES         0x0200
+    #define MDL_DESCRIBES_AWE           0x0400
+    #define MDL_IO_SPACE                0x0800
+    #define MDL_NETWORK_HEADER          0x1000
+    #define MDL_MAPPING_CAN_FAIL        0x2000
+    #define MDL_ALLOCATED_MUST_SUCCEED  0x4000
+    #define MDL_INTERNAL                0x8000
 }
-#[repr(C)]
-pub enum MEMORY_CACHING_TYPE {
-    MmNonCached = 0x0,
-    MmCached = 0x1,
-    MmWriteCombined = 0x2,
-    MmHardwareCoherentCached = 0x3,
-    MmNonCachedUnordered = 0x4,
-    MmUSWCCached = 0x5,
-    MmMaximumCacheType = 0x6,
-    MmNotMapped = 0xFFFFFFFF,
-}
-#[repr(C)]
-pub struct Mdl {
-    pub virtual_address: ntdef::PVOID,
-    pub length: minwindef::ULONG,
-    pub _pad: [u8; 0x20],
-}
-const _: () = if core::mem::size_of::<Mdl>() != 0x30 {
-    panic!("Memory Descriptor List is not of size 0x30!");
-};
 
 /// Relevant addresses where decryption occurs.
 /// DO NOT CHANGE THESE. THESE DO NOTHING.
