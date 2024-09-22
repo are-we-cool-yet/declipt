@@ -16,11 +16,8 @@ use crate::constants::{Mdl, KPROCESSOR_MODE, LOCK_OPERATION, MEMORY_CACHING_TYPE
 #[allow(unused)]
 pub const CANCEL_DRIVER_ENTRY: &'static [u8] = &[0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3];
 
-pub unsafe extern "stdcall" fn cancel_ExAcquireFastMutex(_fast_mutex: *mut ffi::c_void) {}
-
-pub unsafe extern "stdcall" fn cancel_ExReleaseFastMutex(_fast_mutex: *mut ffi::c_void) {}
-
 pub unsafe extern "fastcall" fn MmChangeImageProtection(_arg0: QWORD, _arg1: QWORD, _arg2: QWORD, _arg3: QWORD) -> winapi::ctypes::__int64 {
+    println!("MmChangeImageProtection");
     minwindef::TRUE as _
 }
 

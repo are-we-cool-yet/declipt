@@ -40,8 +40,6 @@ macro_rules! fn_addr {
         }
     };
 }
-fn_addr!(ExAcquireFastMutex, 0x1C00B13E0);
-fn_addr!(ExReleaseFastMutex, 0x1C00B1400);
 fn_addr!(MmChangeImageProtection, 0x1C00B13F0);
 fn_addr!(IoAllocateMdl, 0x1C00B13F8);
 fn_addr!(IoFreeMdl, 0x1C00B13E8);
