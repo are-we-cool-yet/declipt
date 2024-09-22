@@ -24,15 +24,11 @@ pub const unsafe fn offset_addr<T>(ptr: usize, offset: isize) -> *mut T {
     (from_base(ptr) as *mut T).byte_offset(offset)
 }
 
-/// A cursed-ass macro that defines another macro using local variables.
+/// A less cursed-ass macro that creates hooks.
 #[macro_export]
-macro_rules! create_hook_factory {
-    ( $m_name:ident, $handle:ident ) => {
-        macro_rules! $m_name {
-            ( $i:ident ) => {
-                minhook::MinHook::create_hook(*$crate::constants::$i($handle), $crate::hook::$i as _)?
-            };
-        }
+macro_rules! create_hooks_with_handle {
+    { $handle:ident: $( $i:ident; )+ } => {
+        $( minhook::MinHook::create_hook(*$crate::constants::$i($handle), $crate::hook::$i as _)? );+
     };
 }
 

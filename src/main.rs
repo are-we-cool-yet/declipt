@@ -31,14 +31,15 @@ fn main() -> Result<(), Error> {
         println!("0x{handle:X}");
 
         // hook ntoskrnl functions
-        create_hook_factory!(create_hook, handle);
-        create_hook!(IoAllocateMdl);
-        create_hook!(IoFreeMdl);
-        create_hook!(MmProbeAndLockPages);
-        create_hook!(MmUnlockPages);
-        create_hook!(MmLockPagableDataSection);
-        create_hook!(MmMapLockedPagesSpecifyCache);
-        create_hook!(MmUnmapLockedPages);
+        create_hooks_with_handle! { handle:
+            IoAllocateMdl;
+            IoFreeMdl;
+            MmProbeAndLockPages;
+            MmUnlockPages;
+            MmLockPagableDataSection;
+            MmMapLockedPagesSpecifyCache;
+            MmUnmapLockedPages;
+        };
 
         MinHook::enable_all_hooks()?;
 
