@@ -26,7 +26,7 @@ pub unsafe extern "fastcall" fn MmChangeImageProtection(_arg0: QWORD, _arg1: QWO
 }
 
 pub unsafe extern "stdcall" fn IoAllocateMdl(virtual_address: ntdef::PVOID, length: ntdef::ULONG, _secondary_buffer: ntdef::BOOLEAN, _charge_quota: ntdef::BOOLEAN, irp: ntdef::PVOID) -> *mut MDL {
-    println!("IoAllocateMdl (VA @ 0x{:X})", virtual_address as usize);
+    print!("IoAllocateMdl (VA @ 0x{:X})    ", virtual_address as usize);
     if !irp.is_null() {
         panic!("Non-null IRP found! Non-null IRPs are unsupported.");
     }
@@ -67,8 +67,8 @@ pub unsafe extern "stdcall" fn MmProbeAndLockPages(memory_descriptor_list: *mut 
 }
 
 pub unsafe extern "stdcall" fn MmUnlockPages(memory_descriptor_list: *mut MDL) {
-    println!("MmUnlockPages (MDL @ {:X})", memory_descriptor_list as usize);
-    println!("MDL Flags Before 0x{:X}", (*memory_descriptor_list).mdl_flags);
+    print!("MmUnlockPages (MDL @ 0x{:X})    ", memory_descriptor_list as usize);
+    print!("MDL Flags Before 0x{:X}    ", (*memory_descriptor_list).mdl_flags);
     (*memory_descriptor_list).mdl_flags ^= constants::MDL_PAGES_LOCKED;
     println!("MDL Flags After 0x{:X}", (*memory_descriptor_list).mdl_flags);
 }
