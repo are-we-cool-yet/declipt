@@ -42,7 +42,6 @@ fn main() -> Result<(), Error> {
         println!("Loading ClipSp.sys");
         let lib = libloading::os::windows::Library::load_with_flags(&lib_path, libloading::os::windows::LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR)?;
         let handle = lib.into_raw();
-        println!("0x{handle:X}");
 
         // hook ntoskrnl functions
         create_hooks_with_handle! { handle:
