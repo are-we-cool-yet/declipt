@@ -2,13 +2,26 @@
 
 #![allow(non_snake_case)]
 
+use pretty_hex::HexConfig;
 use winapi::shared::ntdef;
 
 use crate::{c_define, types};
 
 // the least retarded shit
-pub const CLIPSP: &'static str = "./emu64/ClipSp.sys";
-pub const DEBUG_CLIPSP: &'static str = "../../emu64/ClipSp.sys";
+pub const CLIPSP: &'static str = "./emu64/";
+pub const DEBUG_CLIPSP: &'static str = "../../emu64/";
+
+// Config
+pub const PRINT_DATA: bool = false;
+pub const HEX_CONFIG: HexConfig = HexConfig {
+    title: true,
+    ascii: false,
+    width: 16,
+    group: 4,
+    chunk: 1,
+    max_bytes: usize::MAX,
+    display_offset: 0,
+};
 
 // Addresses
 /// Encryption data (read-write data, const data, decrypt function)

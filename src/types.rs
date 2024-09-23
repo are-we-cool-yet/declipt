@@ -6,6 +6,9 @@ use core::mem::ManuallyDrop;
 
 use winapi::shared::ntdef;
 
+/// The decrypted memory, to be accessed by the main thread.
+pub type DecryptMessage = Vec<u8>;
+
 // Function Types
 pub type WarbirdDecrypt = unsafe extern "fastcall" fn(rw_data: winapi::ctypes::__int64, const_data: *mut winapi::ctypes::c_int) -> winapi::ctypes::__int64;
 

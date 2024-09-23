@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use winapi::{shared::{minwindef, ntdef}, um::{errhandlingapi::GetLastError, memoryapi::VirtualProtectEx, processthreadsapi::GetCurrentProcess, winnt::PAGE_READWRITE}};
 
-use crate::{constants, manually_drop, types::{KPROCESSOR_MODE, LOCK_OPERATION, MDL, MEMORY_CACHING_TYPE, QWORD}};
+use crate::{constants, manually_drop, types::{KPROCESSOR_MODE, LOCK_OPERATION, MDL, MEMORY_CACHING_TYPE, QWORD}, DECRYPT_TX};
 
 thread_local! {
     static MDL_LIST: RefCell<Vec<MDL>> = RefCell::new(vec![]);
@@ -31,6 +31,7 @@ pub unsafe extern "stdcall" fn IoAllocateMdl(virtual_address: ntdef::PVOID, leng
         panic!("Non-null IRP found! Non-null IRPs are unsupported.");
     }
 
+    // Mark the specified Virtual Address as Read-Write.
     let process_handle = GetCurrentProcess();
     let mut old_protect = 0;
     let mapped_virtual_address = VirtualProtectEx(process_handle, virtual_address, length as usize, PAGE_READWRITE, &mut old_protect);
@@ -38,6 +39,8 @@ pub unsafe extern "stdcall" fn IoAllocateMdl(virtual_address: ntdef::PVOID, leng
         let error = GetLastError();
         panic!("Failed to allocate memory @ 0x{:X}\nError Code: 0x{error:X}\nProcess Handle: 0x{:X}", virtual_address as usize, process_handle as isize);
     }
+
+    // Initialize Memory Descriptor List
     let next_mdl = MDL_LIST.with_borrow_mut(|list| list.last_mut().map(|x| x as *mut MDL).unwrap_or(core::ptr::null_mut()));
     let mdl = MDL {
         next: manually_drop!(next_mdl),
@@ -49,6 +52,7 @@ pub unsafe extern "stdcall" fn IoAllocateMdl(virtual_address: ntdef::PVOID, leng
         byte_count: length,
         byte_offset: 0,
     };
+
     MDL_LIST.with_borrow_mut(|list| list.push(mdl));
     let mdl_ptr = MDL_LIST.with_borrow_mut(|list| list.as_mut_ptr_range().end.byte_offset(-(core::mem::size_of::<MDL>() as isize)));
     println!("Allocated MDL (MDL @ 0x{:X})", mdl_ptr as *const _ as usize);
@@ -58,6 +62,13 @@ pub unsafe extern "stdcall" fn IoAllocateMdl(virtual_address: ntdef::PVOID, leng
 pub unsafe extern "stdcall" fn IoFreeMdl(mdl: *mut MDL) {
     println!("IoFreeMdl (MDL @ 0x{:X})", mdl as usize);
     assert!(!mdl.is_null());
+
+    // Gather and send decrypted page to the main thread
+    let len = (*mdl).byte_count as usize;
+    let mut data = vec![0; len];
+    data.extend_from_slice(core::ptr::slice_from_raw_parts((*mdl).start_va as *const u8, len).as_ref().expect("decrypted data should not be null"));
+    DECRYPT_TX.send(data).unwrap();
+
     MDL_LIST.with_borrow_mut(|list| list.remove(list.iter().position(|x| x as *const _ == mdl).unwrap()));
 }
 
