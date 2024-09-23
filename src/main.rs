@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ffi, ops::Deref, path::Path, sync::{mpsc, LazyLock}, thread};
+use std::{cell::RefCell, ffi, ops::Deref, path::Path, sync::{mpsc, LazyLock}, thread::{self}, time::Duration};
 use error::Error;
 use minhook::MinHook;
 use pretty_hex::config_hex;
@@ -15,8 +15,10 @@ thread_local! {
 }
 
 pub static DECRYPT_TX: LazyLock<mpsc::SyncSender<types::DecryptMessage>> = LazyLock::new(|| {
-    let (tx, rx) = mpsc::sync_channel(constants::DATA.len());
-    DECRYPT_RX.set(Some(rx));
+    let (tx, rx) = mpsc::sync_channel(constants::DATA.len() * 3);
+    if thread::current().name().is_some() {
+        DECRYPT_RX.set(Some(rx));
+    }
     tx
 });
 
@@ -35,7 +37,9 @@ fn main() -> Result<(), Error> {
     )?;
     let mut data_dir = lib_path.clone();
     data_dir.push("data");
-    std::fs::create_dir(data_dir.clone())?;
+    if !data_dir.try_exists()? {
+        std::fs::create_dir(data_dir.clone())?;
+    }
     lib_path.push("ClipSp.sys");
 
     unsafe {
@@ -61,11 +65,14 @@ fn main() -> Result<(), Error> {
 
         let thread_handle = thread::spawn(move || {
             // Call decryption functions
-            for &(const_data, rw_data, decrypt_fn_addr) in constants::DATA.iter() {
+            for &(const_data, rw_data, decrypt_fn_addr, data_id) in constants::DATA.iter() {
+                println!("{data_id}");
+                hook::DATA_ID.set(data_id);
+                hook::CHUNK_ID.set(0);
                 let rw_data_ptr: *mut ffi::c_void = offset_addr(rw_data, handle);
                 let const_data_ptr = offset_addr::<winapi::ctypes::__int64>(const_data, handle);
                 if *((const_data_ptr.byte_offset(0x50)) as *mut winapi::shared::minwindef::DWORD) & 1 == 0 {
-                    println!("Oops! Something is wrong with the Const Data provided.");
+                    println!("Oops! Something is wrong with the Const Data provided. 0x{:X}", const_data);
                     println!("const_data + 0x50    0x{:X}", const_data_ptr.byte_offset(0x50) as usize);
                     println!("*(DWORD *)(const_data + 0x50)    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD));
                     println!("*(DWORD *)(const_data + 0x50) & 1    0x{:X}", *(const_data_ptr.byte_offset(0x50) as *mut winapi::shared::minwindef::DWORD) & 1);
@@ -74,39 +81,42 @@ fn main() -> Result<(), Error> {
                 let decrypt_fn = std::mem::transmute::<*mut ffi::c_void, types::WarbirdDecrypt>(decrypt_fn_ptr);
                 println!("Decrypting rw_data (0x{rw_data:X}) and const_data (0x{const_data:X}) w/ 0x{decrypt_fn_addr:X}");
                 let decrypted = decrypt_fn(const_data_ptr as _, rw_data_ptr as *mut _);
-                println!("Error Code: 0x{decrypted:X}");
+                println!("Error Code: 0x{decrypted:X}\n");
             }
         });
 
-        // Receive decrypted data
-        let datas = constants::DATA
-            .iter()
-            .map(|_| {
-                DECRYPT_RX.with_borrow(|rx| {
-                    rx.as_ref().unwrap().recv()
-                })
-            })
-            .collect::<Result<Vec<Vec<_>>, _>>()?;
+        thread_handle.join().expect("couldn't join thread");
 
-        if constants::PRINT_DATA {
-            datas
-                .iter()
-                .for_each(|data| {
-                    println!("{}", config_hex(data, constants::HEX_CONFIG));
-                });
+        // Receive decrypted data
+        let mut datas = vec![];
+        loop {
+            let data = DECRYPT_RX.with_borrow(|rx| {
+                rx.as_ref().unwrap().recv_timeout(Duration::from_millis(125))
+            });
+            if let Ok(data) = data {
+                datas.push(data);
+            } else {
+                break
+            }
         }
 
         datas
             .iter()
-            .enumerate()
-            .try_for_each::<_, Result<_, Error>>(|(i, data)| {
+            .for_each(|(data, data_id, chunk_id)| {
+                if constants::PRINT_DATA {
+                    println!("{data_id}@{chunk_id} received!");
+                    println!("{}", config_hex(data, constants::HEX_CONFIG));
+                }
+            });
+
+        datas
+            .iter()
+            .try_for_each::<_, Result<_, Error>>(|(data, data_id, chunk_id)| {
                 let mut data_file_path = data_dir.clone();
-                data_file_path.push(format!("data_{i}.bin"));
+                data_file_path.push(format!("data_{data_id}@{chunk_id}.bin"));
                 std::fs::write(data_file_path, data)?;
                 Ok(())
             })?;
-
-        thread_handle.join().expect("couldn't join thread");
 
         // uninitialize hooks
         MinHook::disable_all_hooks()?;

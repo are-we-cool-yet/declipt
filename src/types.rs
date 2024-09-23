@@ -2,12 +2,10 @@
 
 #![allow(non_camel_case_types)]
 
-use core::mem::ManuallyDrop;
-
 use winapi::shared::ntdef;
 
 /// The decrypted memory, to be accessed by the main thread.
-pub type DecryptMessage = Vec<u8>;
+pub type DecryptMessage = (Vec<u8>, usize, usize);
 
 // Function Types
 pub type WarbirdDecrypt = unsafe extern "fastcall" fn(rw_data: winapi::ctypes::__int64, const_data: *mut winapi::ctypes::c_int) -> winapi::ctypes::__int64;
@@ -41,10 +39,10 @@ pub struct EPROCESS {
 }
 #[repr(C)]
 pub struct MDL {
-    pub next: ManuallyDrop<*mut MDL>,
+    pub next: *mut MDL,
     pub size: ntdef::CSHORT,
     pub mdl_flags: ntdef::CSHORT,
-    pub process: ManuallyDrop<*const EPROCESS>,
+    pub process: *const EPROCESS,
     pub mapped_system_va: ntdef::PVOID,
     pub start_va: ntdef::PVOID,
     pub byte_count: ntdef::ULONG,

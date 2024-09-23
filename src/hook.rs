@@ -1,14 +1,16 @@
 //! A collection of hooks and patches.
 #![allow(non_snake_case)]
 
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::VecDeque};
 
 use winapi::{shared::{minwindef, ntdef}, um::{errhandlingapi::GetLastError, memoryapi::VirtualProtectEx, processthreadsapi::GetCurrentProcess, winnt::PAGE_READWRITE}};
 
-use crate::{constants, manually_drop, types::{KPROCESSOR_MODE, LOCK_OPERATION, MDL, MEMORY_CACHING_TYPE, QWORD}, DECRYPT_TX};
+use crate::{constants, ptr, types::{KPROCESSOR_MODE, LOCK_OPERATION, MDL, MEMORY_CACHING_TYPE, QWORD}, DECRYPT_TX};
 
 thread_local! {
-    static MDL_LIST: RefCell<Vec<MDL>> = RefCell::new(vec![]);
+    static MDL_LIST: RefCell<VecDeque<MDL>> = RefCell::new(VecDeque::new());
+    pub static DATA_ID: RefCell<usize> = RefCell::new(usize::MAX);
+    pub static CHUNK_ID: RefCell<usize> = RefCell::new(usize::MAX);
 }
 
 /// Replace the first six bytes of the main entrypoint with these bytes.
@@ -41,20 +43,19 @@ pub unsafe extern "stdcall" fn IoAllocateMdl(virtual_address: ntdef::PVOID, leng
     }
 
     // Initialize Memory Descriptor List
-    let next_mdl = MDL_LIST.with_borrow_mut(|list| list.last_mut().map(|x| x as *mut MDL).unwrap_or(core::ptr::null_mut()));
     let mdl = MDL {
-        next: manually_drop!(next_mdl),
+        next: core::ptr::null_mut(),
         size: length as _,
         mdl_flags: constants::MDL_MAPPED_TO_SYSTEM_VA,
-        process: manually_drop!(*const constants::EPROCESS),
+        process: ptr!(*const constants::EPROCESS),
         mapped_system_va: virtual_address,
         start_va: virtual_address,
         byte_count: length,
         byte_offset: 0,
     };
 
-    MDL_LIST.with_borrow_mut(|list| list.push(mdl));
-    let mdl_ptr = MDL_LIST.with_borrow_mut(|list| list.as_mut_ptr_range().end.byte_offset(-(core::mem::size_of::<MDL>() as isize)));
+    MDL_LIST.with_borrow_mut(|list| list.push_back(mdl));
+    let mdl_ptr = MDL_LIST.with_borrow_mut(|list| list.back_mut().unwrap() as *mut _);
     println!("Allocated MDL (MDL @ 0x{:X})", mdl_ptr as *const _ as usize);
     mdl_ptr as *mut MDL
 }
@@ -67,20 +68,23 @@ pub unsafe extern "stdcall" fn IoFreeMdl(mdl: *mut MDL) {
     let len = (*mdl).byte_count as usize;
     let mut data = vec![0; len];
     data.extend_from_slice(core::ptr::slice_from_raw_parts((*mdl).start_va as *const u8, len).as_ref().expect("decrypted data should not be null"));
-    DECRYPT_TX.send(data).unwrap();
+    let data_id = DATA_ID.with_borrow(|x| x.clone());
+    let chunk_id = CHUNK_ID.with_borrow(|x| x.clone());
+    CHUNK_ID.replace(chunk_id + 1);
+    println!("{data_id}@{chunk_id}");
+    DECRYPT_TX.send((data, data_id, chunk_id)).unwrap();
 
     MDL_LIST.with_borrow_mut(|list| list.remove(list.iter().position(|x| x as *const _ == mdl).unwrap()));
 }
 
 pub unsafe extern "stdcall" fn MmProbeAndLockPages(memory_descriptor_list: *mut MDL, _access_mode: KPROCESSOR_MODE, _operation: LOCK_OPERATION) {
     println!("MmProbeAndLockPages (MDL @ {:X})", memory_descriptor_list as usize);
-    (*memory_descriptor_list).mdl_flags |= constants::MDL_PAGES_LOCKED;
 }
 
 pub unsafe extern "stdcall" fn MmUnlockPages(memory_descriptor_list: *mut MDL) {
     print!("MmUnlockPages (MDL @ 0x{:X})    ", memory_descriptor_list as usize);
     print!("MDL Flags Before 0x{:X}    ", (*memory_descriptor_list).mdl_flags);
-    (*memory_descriptor_list).mdl_flags ^= constants::MDL_PAGES_LOCKED;
+    (*memory_descriptor_list).mdl_flags = 0;
     println!("MDL Flags After 0x{:X}", (*memory_descriptor_list).mdl_flags);
 }
 

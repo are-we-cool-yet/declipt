@@ -24,8 +24,25 @@ pub const HEX_CONFIG: HexConfig = HexConfig {
 };
 
 // Addresses
-/// Encryption data (read-write data, const data, decrypt function)
-pub const DATA: &[(usize, usize, usize)] = &[(0x1C00A1E10, 0x1C00AA8E0, 0x1C0001158)];
+/// Decrypt function (Type 1)
+pub const DECRYPT_1: usize = 0x1C0001158;
+/// Decrypt function (Type 2)
+pub const DECRYPT_2: usize = 0x1C00011E4;
+pub const CONST_DATA_2: usize = 0x1C00A1D60;
+pub const READ_WRITE_DATA_2: usize = 0x1C00AA8B8;
+pub const CONST_DATA_3: usize = 0x1C00A1E10;
+pub const READ_WRITE_DATA_3: usize = 0x1C00AA8E0;
+pub const CONST_DATA_4: usize = 0x1C00A24C0;
+pub const READ_WRITE_DATA_4: usize = 0x1C00AAA80;
+pub const CONST_DATA_5: usize = 0x1C00A2DE0;
+pub const READ_WRITE_DATA_5: usize = 0x1C00AACC0;
+/// Encryption data (const data, read-write data, decrypt function, enumeration)
+pub const DATA: &[(usize, usize, usize, usize)] = &[
+    (CONST_DATA_2, READ_WRITE_DATA_2, DECRYPT_2, 2),
+    (CONST_DATA_3, READ_WRITE_DATA_3, DECRYPT_1, 3),
+    (CONST_DATA_4, READ_WRITE_DATA_4, DECRYPT_2, 4),
+    (CONST_DATA_5, READ_WRITE_DATA_5, DECRYPT_1, 5),
+];
 /// The base address of the DLL.
 pub const DLL_BASE: usize = 0x1C0000000;
 
