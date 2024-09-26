@@ -10,6 +10,7 @@ use crate::{c_define, types};
 // the least retarded shit
 pub const CLIPSP: &'static str = "./emu64/";
 pub const DEBUG_CLIPSP: &'static str = "../../emu64/";
+pub const DEBUG2_CLIPSP: &'static str = "../../../emu64/";
 
 // Config
 pub const PRINT_DATA: bool = false;

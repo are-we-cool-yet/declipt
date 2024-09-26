@@ -6,3 +6,6 @@
 
 # Emulation
 /emu64
+
+# VSCode
+.vscode

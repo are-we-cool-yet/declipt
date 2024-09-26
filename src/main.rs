@@ -31,7 +31,10 @@ fn main() -> Result<(), Error> {
             constants::CLIPSP
         } else if Path::new(constants::DEBUG_CLIPSP).exists() {
             constants::DEBUG_CLIPSP
+        } else if Path::new(constants::DEBUG2_CLIPSP).exists() {
+            constants::DEBUG2_CLIPSP
         } else {
+            println!("Current Directory: {}", std::env::current_dir()?.display());
             panic!("emu64 not found! Read the directions in README.md.");
         }
     )?;
