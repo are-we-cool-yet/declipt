@@ -1,4 +1,6 @@
-# Declipt
+Declipt is now defunct. There is a fork of Declipt called [Debird](https://github.com/are-we-cool-yet/debird) where development has continued.
+
+# ~~Declipt~~
 
 ## Special Thanks
 …to [WitherOrNot](https://github.com/WitherOrNot) for researching and cracking [Warbird](https://github.com/WitherOrNot/warbird-docs/tree/main).
